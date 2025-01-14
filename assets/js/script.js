@@ -29,7 +29,7 @@ textarea.addEventListener('blur', () => {
 });
 
 /**
- * ✅ Funktion zum Erstellen eines grünen Punktes mit Datum & Uhrzeit (ohne Emojis)
+ * ✅ Funktion zum Erstellen eines Punktes mit Text (inkl. Viewport-Korrektur)
  */
 function createGreenDot(text) {
     const dot = document.createElement('div');
@@ -51,14 +51,12 @@ function createGreenDot(text) {
     dot.style.left = `${randomX}px`;
     dot.style.top = `${randomY}px`;
 
-    // ✅ Aktuelles Datum und Uhrzeit holen (ohne Emojis)
+    // ✅ Text-Element erstellen (Mehrzeilig + Datumsanzeige)
+    const textElement = document.createElement('div');
+    textElement.classList.add('dot-text');
     const now = new Date();
     const formattedDate = now.toLocaleDateString('de-DE');
     const formattedTime = now.toLocaleTimeString('de-DE');
-
-    // ✅ Text-Element direkt am Punkt hinzufügen (MEHRZEILIG + DATUM/UHRZEIT)
-    const textElement = document.createElement('div');
-    textElement.classList.add('dot-text');
     textElement.innerHTML = `${text}<br><br><span class="timestamp">${formattedDate} | ${formattedTime}</span>`;
     textElement.style.left = `${randomX + 20}px`;
     textElement.style.top = `${randomY - 5}px`;
@@ -68,7 +66,7 @@ function createGreenDot(text) {
     textOutputArea.appendChild(dot);
     textOutputArea.appendChild(textElement);
 
-    // ✅ Klick: Text ein- und ausblenden
+    // ✅ Klick-Event für den Punkt (Text ein- und ausblenden)
     dot.addEventListener('click', () => {
         if (textElement.style.display === 'none') {
             textElement.style.display = 'block';
@@ -77,6 +75,12 @@ function createGreenDot(text) {
             setTimeout(() => {
                 textElement.style.opacity = 1;
             }, 10);
+
+            // ✅ Fix: Text bleibt im Viewport sichtbar
+            const textRect = textElement.getBoundingClientRect();
+            if (textRect.bottom > window.innerHeight) {
+                textElement.style.top = `${window.innerHeight - textRect.height - 20}px`;
+            }
         } else {
             textElement.style.opacity = 0;
             setTimeout(() => {
@@ -85,7 +89,7 @@ function createGreenDot(text) {
         }
     });
 
-    // ✅ Automatisch zum neuen Punkt scrollen
+    // ✅ Automatisch zum Punkt scrollen
     dot.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
@@ -103,3 +107,43 @@ textarea.addEventListener('keydown', function (event) {
         }
     }
 });
+
+/**
+ * ✅ Funktion zum Aktualisieren der Uhrzeit & Datum (rechts oben)
+ */
+function updateDateTime() {
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString('de-DE');
+    const formattedTime = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    // ✅ HTML-Elemente aktualisieren
+    document.getElementById('current-date').textContent = formattedDate;
+    document.getElementById('current-time').textContent = formattedTime;
+}
+
+// ✅ Uhrzeit & Datum jede Sekunde aktualisieren
+setInterval(updateDateTime, 1000);
+
+// ✅ Initial beim Laden anzeigen
+updateDateTime();
+
+document.addEventListener('DOMContentLoaded', () => {
+  const logoDot = document.querySelector('.logo-dot');
+  const logoText = document.getElementById('logo-text');
+  const nemoImage = document.getElementById('nemo-image');
+
+  // ✅ Einheitliche Kontrolle für Text und Bild
+  logoDot.addEventListener('click', () => {
+      const isVisible = logoText.style.display === 'block';
+
+      if (!isVisible) {
+          logoText.style.display = 'block';
+          nemoImage.style.display = 'block'; 
+      } else {
+          logoText.style.display = 'none';
+          nemoImage.style.display = 'none';
+      }
+  });
+});
+
+
