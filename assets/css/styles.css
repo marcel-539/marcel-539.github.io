@@ -8,13 +8,11 @@ html, body {
   overflow: hidden;
 }
 
-
 body {
   background: rgba(200, 200, 200, 1); 
   position: relative;
   overflow-y: scroll;
 }
-
 
 body::before {
   content: "";
@@ -23,13 +21,12 @@ body::before {
   left: 20px;
   right: 20px;
   bottom: 0;
-  border: 3px solid #39ff14;
+  border: 2px solid #39ff14;
   border-bottom: none;  
   box-sizing: border-box;
   pointer-events: none;
   z-index: 9999;
 }
-
 
 .scroll-space {
   height: 2000vh; 
@@ -47,7 +44,6 @@ body::before {
   position: relative;
 }
 
-
 @keyframes shake {
     0% { transform: translateX(0); }
     25% { transform: translateX(-5px); }
@@ -56,19 +52,18 @@ body::before {
     100% { transform: translateX(0); }
 }
 
-
 .shake-effect {
     animation: shake 0.3s ease-in-out;
 }
 
-
 #expandingTextarea {
+  text-transform: uppercase;
   position: absolute;
   bottom: 20px;
   left: 20px;
   right: 20px;
   width: calc(100% - 40px);
-  border: 3px solid #39ff14;  
+  border: 2px solid #39ff14;  
   outline: none;
   font-size: 100px;
   color: #39ff14;
@@ -88,12 +83,10 @@ body::before {
   max-height: 80vh;
 }
 
-
 textarea::placeholder {
     color: rgba(57, 255, 20, 0.3);
     line-height: 0.8;
 }
-
 
 .green-dot {
   position: absolute;
@@ -108,31 +101,28 @@ textarea::placeholder {
   animation: fadeIn 0.5s ease-out, pulse 2s infinite alternate ease-in-out;
 }
 
-
 .dot-text {
+  text-transform: uppercase;
   position: absolute;
-  font-size: 14px;
+  font-size: 24px;
   color: #39ff14;
   opacity: 0.9;
   white-space: pre-wrap;   
   word-wrap: break-word;   
   max-width: 300px; 
   padding: 10px;
-  border: 3px solid #39ff14;
+  border: 2px solid #39ff14;
   z-index: 1000;
   animation: fadeIn 0.5s ease-out;
 }
 
-
 .timestamp {
-    font-size: 12px;
-    color: rgba(57, 255, 20, 0.8);
+    font-size: 24px;
+    color: #39ff14;
     margin-top: 10px;
     display: block;
 }
 
-
-/* ✅ Punkt-Animation: Pulsieren */
 @keyframes pulse {
   0% {
       transform: scale(1);
@@ -148,7 +138,7 @@ textarea::placeholder {
   }
 }
 
-/* Animation für Punkte & Text */
+
 @keyframes fadeIn {
   from {
       opacity: 0;
@@ -160,7 +150,6 @@ textarea::placeholder {
   }
 }
 
-
 #logo {
   position: fixed;
   top: 40px;
@@ -170,9 +159,8 @@ textarea::placeholder {
   z-index: 10000;
   display: flex;
   align-items: center;
-  gap: 10px; /* Abstand zwischen Punkt und Text */
+  gap: 10px;
 }
-
 
 #logo .logo-dot {
   width: 15px;
@@ -182,7 +170,6 @@ textarea::placeholder {
   box-shadow: 0 0 20px #39ff14, 0 0 30px rgba(57, 255, 20, 0.5); 
   animation: pulse 2s infinite alternate ease-in-out;
 }
-
 
 #header-info {
   position: fixed;
@@ -199,40 +186,89 @@ textarea::placeholder {
   font-family: 'Mono', monospace;
 }
 
-
 #current-time, #current-date, #header-text {
   white-space: nowrap;
 }
-
-
 
 #title-divider {
   position: fixed;
   top: 85px; 
   left: 20px;
   right: 20px;
-  height: 3px;
+  height: 2px;
   background-color: #39ff14;
   z-index: 9999;
   border: none;
   pointer-events: none;
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0; 
+    transform: translateY(-10px); 
+  }
+  to {
+    opacity: 1; 
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
 #logo-text {
   position: absolute;
-  top: calc(85px + 20px);     
-  left: calc(40px + 25px);    
+  top: calc(85px + 20px);
+  left: calc(40px + 25px); 
   font-size: 24px;
   color: #39FF14;
   line-height: 1.6;
-  max-width: 1500px;           
+  max-width: 1500px;
   z-index: 10000;
-  padding: 0;
-  border: none;
-  background: none;
   white-space: normal;
   overflow-wrap: break-word;
-  display: none;
+  display: none; 
+  opacity: 0; 
+  transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
 }
 
+#logo-text.show {
+  display: block;
+  animation: fadeIn 0.3s ease-in-out forwards;
+}
 
+#logo-text.hide {
+  animation: fadeOut 0.3s ease-in-out forwards;
+}
+
+.logo-dot {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background-color: #39ff14; 
+  box-shadow: 0 0 20px #39ff14, 0 0 30px rgba(57, 255, 20, 0.5); 
+  animation: pulse 2s infinite alternate ease-in-out;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 20px #39ff14, 0 0 30px rgba(57, 255, 20, 0.5);
+  }
+  50% {
+    transform: scale(1.2);
+    box-shadow: 0 0 25px #39ff14, 0 0 40px rgba(57, 255, 20, 0.7);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 20px #39ff14, 0 0 30px rgba(57, 255, 20, 0.5);
+  }
+}
