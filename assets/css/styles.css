@@ -11,6 +11,7 @@ body {
   background: rgba(200, 200, 200, 1); 
   position: relative;
   overflow-y: scroll;
+  overflow-x: hidden;
 }
 
 body::before {
@@ -24,25 +25,30 @@ body::before {
   border-bottom: none;  
   box-sizing: border-box;
   pointer-events: none;
-  z-index: 9999;
+  z-index: 1; 
 }
 
-.scroll-space {
-  height: 2000vh; 
-  padding: 20px;
-  box-sizing: border-box;
-  
-
+#scrollContainer {
+  position: relative; 
+  width: 100%;
+  min-height: 60000px; 
+  padding-top: 200px; 
   background: linear-gradient(to bottom, 
       rgba(160, 160, 160, 1) 0%,      
       rgba(100, 100, 100, 1) 25%,     
       rgba(50, 50, 50, 1) 50%,        
       rgba(25, 25, 25, 1) 75%,        
-      rgba(0, 0, 0, 1) 100%);         
-  background-size: cover;
-  position: relative;
+      rgba(0, 0, 0, 1) 100%);
 }
 
+#textOutputArea {
+  position: relative; 
+  width: 100%;
+  height: 100%;
+  z-index: 2; 
+}
+
+/* Shake-Animation */
 @keyframes shake {
     0% { transform: translateX(0); }
     25% { transform: translateX(-5px); }
@@ -56,15 +62,14 @@ body::before {
 }
 
 #expandingTextarea {
+  position: relative; 
+  margin: 0;
+  padding: 10px 10px 30px 10px; /* Reduziertes Padding auf 10px links und rechts */
+  width: 100%;
   text-transform: uppercase;
-  position: absolute;
-  bottom: 20px;
-  left: 20px;
-  right: 20px;
-  width: calc(100% - 40px);
   border: 2px solid #39ff14;  
   outline: none;
-  font-size: 100px;
+  font-size: 24px;
   color: #39ff14;
   background-color: transparent;
   resize: none;
@@ -72,19 +77,37 @@ body::before {
   white-space: pre-wrap;
   word-wrap: break-word;
   box-sizing: border-box;
-  padding: 10px;
-  margin: 0;
   line-height: 1.2;
   caret-color: #39ff14; 
-  z-index: 2;
-  padding-left: 40px;
+  z-index: 3; 
   min-height: 120px; 
   max-height: 80vh;
+  margin-top: 66vh;
 }
+
 
 textarea::placeholder {
     color: rgba(57, 255, 20, 0.3);
     line-height: 0.8;
+}
+
+.textarea-container {
+  position: relative;
+  width: calc(100% - 40px);
+  margin: 0 20px 20px 20px;
+  box-sizing: border-box;
+}
+
+
+#charCounter {
+  position: absolute;
+  bottom: 10px;
+  right: 20px;
+  color: #39ff14;
+  font-size: 24px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  pointer-events: none;
 }
 
 .green-dot {
@@ -94,10 +117,11 @@ textarea::placeholder {
   border-radius: 50%;
   background-color: #39ff14;
   box-shadow: 0 0 20px #39ff14, 0 0 30px rgba(57, 255, 20, 0.5); 
-  z-index: 1;
+  z-index: 1000;
   opacity: 0.9;
   cursor: pointer;
   animation: fadeIn 0.5s ease-out, pulse 2s infinite alternate ease-in-out;
+  pointer-events: auto;
 }
 
 .dot-text {
@@ -111,9 +135,11 @@ textarea::placeholder {
   max-width: 300px; 
   padding: 10px;
   border: 2px solid #39ff14;
-  z-index: 1000;
+  z-index: 1001;
   animation: fadeIn 0.5s ease-out;
+  pointer-events: auto;
 }
+
 
 .timestamp {
     font-size: 24px;
@@ -122,32 +148,6 @@ textarea::placeholder {
     display: block;
 }
 
-@keyframes pulse {
-  0% {
-      transform: scale(1);
-      box-shadow: 0 0 20px #39ff14, 0 0 30px rgba(57, 255, 20, 0.5);
-  }
-  50% {
-      transform: scale(1.2);
-      box-shadow: 0 0 25px #39ff14, 0 0 40px rgba(57, 255, 20, 0.7);
-  }
-  100% {
-      transform: scale(1);
-      box-shadow: 0 0 20px #39ff14, 0 0 30px rgba(57, 255, 20, 0.5);
-  }
-}
-
-
-@keyframes fadeIn {
-  from {
-      opacity: 0;
-      transform: scale(0.5);
-  }
-  to {
-      opacity: 0.9;
-      transform: scale(1);
-  }
-}
 
 #logo {
   position: fixed;
@@ -155,7 +155,7 @@ textarea::placeholder {
   left: 40px;
   font-size: 24px;
   color: #39ff14;
-  z-index: 10000;
+  z-index: 10;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -177,7 +177,7 @@ textarea::placeholder {
   font-size: 24px;
   color: #39ff14;
   text-align: right;
-  z-index: 10000;
+  z-index: 10;
   display: flex;
   gap: 45px;
   justify-content: flex-end;
@@ -196,7 +196,7 @@ textarea::placeholder {
   right: 20px;
   height: 2px;
   background-color: #39ff14;
-  z-index: 9999;
+  z-index: 2; 
   border: none;
   pointer-events: none;
 }
@@ -248,15 +248,7 @@ textarea::placeholder {
   animation: fadeOut 0.3s ease-in-out forwards;
 }
 
-.logo-dot {
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  background-color: #39ff14; 
-  box-shadow: 0 0 20px #39ff14, 0 0 30px rgba(57, 255, 20, 0.5); 
-  animation: pulse 2s infinite alternate ease-in-out;
-}
-
+/* Pulsierende Punkte */
 @keyframes pulse {
   0% {
     transform: scale(1);
@@ -269,5 +261,24 @@ textarea::placeholder {
   100% {
     transform: scale(1);
     box-shadow: 0 0 20px #39ff14, 0 0 30px rgba(57, 255, 20, 0.5);
+  }
+}
+
+
+@media (max-width: 1200px) {
+  #expandingTextarea {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 800px) {
+  #expandingTextarea {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 500px) {
+  #expandingTextarea {
+    font-size: 24px;
   }
 }
