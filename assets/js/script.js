@@ -82,8 +82,9 @@ function adjustScrollContainerHeight(y) {
  * 5) FUNKTION createGreenDot
  *    -> Erzeugt einen grünen Punkt + zugehöriges Textfeld
  *    -> Scrollen nur, wenn shouldScroll = true
+ *    -> "submissionTimestamp" ist neu hinzugefügt für Datum/Uhrzeit
  ******************************************************/
-function createGreenDot(text, x, y, shouldScroll = false) {
+function createGreenDot(text, x, y, shouldScroll = false, submissionTimestamp = null) {
     console.log(`Creating dot at (${x}, ${y})`);
 
     const dot = document.createElement('div');
@@ -97,14 +98,21 @@ function createGreenDot(text, x, y, shouldScroll = false) {
     const textElement = document.createElement('div');
     textElement.classList.add('dot-text');
 
-    // Datum/Uhrzeit
-    const now = new Date();
-    const formattedDate = now.toLocaleDateString('de-DE');
-    const formattedTime = now.toLocaleTimeString('de-DE');
+    // 1) Falls wir einen gespeicherten Timestamp haben -> nimm diesen
+    // 2) Sonst nimm "jetzt" als Fallback (sollte in der Praxis aber nicht passieren, 
+    //    weil wir ihn ja immer mitschicken).
+    let finalDate = new Date();
+    if (submissionTimestamp) {
+      finalDate = new Date(submissionTimestamp);
+    }
+
+    // Formatierung (de-DE) => DD.MM.YYYY bzw. HH:MM:SS
+    const formattedDate = finalDate.toLocaleDateString('de-DE');
+    const formattedTime = finalDate.toLocaleTimeString('de-DE');
 
     textElement.innerHTML = `${text}<br><br><span class="timestamp">${formattedDate}<br>${formattedTime}</span>`;
-    textElement.style.left = `${x + 20}px`;
-    textElement.style.top  = `${y - 5}px`;
+    textElement.style.left = `${x + 27}px`;
+    textElement.style.top  = `${y - 19}px`;
     textElement.style.display = 'none';
 
     // Punkt & Text ins DOM einfügen innerhalb von #textOutputArea
@@ -133,20 +141,14 @@ function createGreenDot(text, x, y, shouldScroll = false) {
 
     // Nur scrollen, wenn "shouldScroll" = true
     if (shouldScroll) {
-        console.log(`Scrolling to y: ${y - window.innerHeight / 2}`);
         requestAnimationFrame(() => {
             const rect = dot.getBoundingClientRect();
             const absoluteY = rect.top + window.pageYOffset;
             const scrollToY = absoluteY - (window.innerHeight / 2);
-            
-            console.log(`Scrolling to absolute y: ${scrollToY}`);
-            
             window.scrollTo({
                 top: scrollToY,
                 behavior: 'smooth'
             });
-            
-            console.log(`Scrolled to y: ${scrollToY}`);
         });
     }
 }
@@ -177,21 +179,34 @@ textarea.addEventListener('keydown', function (event) {
       const effectiveMaxY = maxY > minY ? maxY : minY + 100;
 
       const textLengthFactor = Math.min(userInput.length / maxCharCount, 1); // 0..1
-      const y = minY + textLengthFactor * (effectiveMaxY - minY);
+      let y = minY + textLengthFactor * (effectiveMaxY - minY);
       console.log(`Final y-Wert für den neuen Punkt: ${y}`);
 
+      // NEU: Beispiel für feste Obergrenze Y (falls gewünscht)
+      const MAX_Y = 58100;
+      y = Math.min(y, MAX_Y);
+      console.log(`(Gekappter) y-Wert: ${y}`);
+
       // Berechnung der X-Koordinate innerhalb des Containers mit horizontalem Puffer
-      const horizontalBuffer = 50; // Puffer in Pixeln an den Seiten (z.B. 50px)
+      const horizontalBuffer = 50; // Puffer an den Seiten
       const leftMargin = horizontalBuffer; 
       const rightMargin = horizontalBuffer;
       const dotWidth = 15; // Breite der Punkte
       
       const minX = leftMargin;
       const maxX = containerWidth - rightMargin - dotWidth;
-      const x = Math.floor(minX + Math.random() * (maxX - minX));
+      let x = Math.floor(minX + Math.random() * (maxX - minX));
       console.log(`Final x-Wert für den neuen Punkt: ${x}`);
 
-      // Neuen Punkt in Firebase speichern
+      // NEU: Beispiel für feste Obergrenze X (falls gewünscht)
+      const MAX_X = 1450;
+      x = Math.min(x, MAX_X);
+      console.log(`(Gekappter) x-Wert: ${x}`);
+
+      // ---- NEU: Zeitstempel (z. B. ISO-String) beim Absenden erzeugen
+      const now = new Date().toISOString();
+
+      // Neuen Punkt in Firebase speichern => inkl. timestamp
       const newRef = dotsRef.push(); // Generiert einen neuen Schlüssel ohne Daten
 
       if (newRef.key) {
@@ -203,7 +218,8 @@ textarea.addEventListener('keydown', function (event) {
           newRef.set({
               text: userInput,
               x: x,
-              y: y
+              y: y,
+              timestamp: now // Hier speichern wir die Absendezeit
           }).then(() => {
               console.log(`Saved new dot: x=${x}, y=${y}, key=${newRef.key}`);
           }).catch((error) => {
@@ -233,7 +249,8 @@ dotsRef.once('value', (snapshot) => {
     Object.keys(allDots).forEach(key => {
       const dotData = allDots[key];
       // Erzeuge Punkt ohne Scroll (weil es "alte" Punkte sind)
-      createGreenDot(dotData.text, dotData.x, dotData.y, false);
+      // => Übergib dotData.timestamp an createGreenDot
+      createGreenDot(dotData.text, dotData.x, dotData.y, false, dotData.timestamp);
     });
   }
 });
@@ -242,7 +259,7 @@ dotsRef.once('value', (snapshot) => {
 dotsRef.on('child_added', (snapshot) => {
   // snapshot.key => eindeutige ID
   const dotKey = snapshot.key;
-  const newDotData = snapshot.val(); // { text, x, y }
+  const newDotData = snapshot.val(); // { text, x, y, timestamp }
 
   console.log('child_added:', dotKey);
 
@@ -258,7 +275,8 @@ dotsRef.on('child_added', (snapshot) => {
     console.log(`Key ${dotKey} nicht in recentlyCreatedKeys.`);
   }
 
-  createGreenDot(newDotData.text, newDotData.x, newDotData.y, shouldScroll);
+  // createGreenDot(...) => timestamp mitgeben
+  createGreenDot(newDotData.text, newDotData.x, newDotData.y, shouldScroll, newDotData.timestamp);
 });
 
 /******************************************************
