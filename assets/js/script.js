@@ -1,8 +1,12 @@
 /******************************************************
- * 0) GLOBALE HILFS-VARIABLE
+ * 0) GLOBALE HILFS-VARIABLEN
  ******************************************************/
 // Merkt sich die Keys der neu erstellten Punkte (nur von dir)
 let recentlyCreatedKeys = [];
+
+// Speichert Infos zu bereits angezeigten Punkten, 
+// damit wir sie bei window.resize neu positionieren können.
+let displayedDots = [];
 
 /******************************************************
  * 1) FIREBASE INITIALISIEREN (Globaler Modus)
@@ -69,58 +73,69 @@ textarea.addEventListener('blur', () => {
  * 4) FUNKTION adjustScrollContainerHeight
  *    -> Passt die Mindesthöhe des Scroll-Containers an
  ******************************************************/
-function adjustScrollContainerHeight(y) {
+function adjustScrollContainerHeight(yPixel) {
   const scrollContainer = document.getElementById('scrollContainer');
   const currentMinHeight = scrollContainer.clientHeight;
-  if (y + 200 > currentMinHeight) { // 200px Puffer
-    scrollContainer.style.minHeight = `${y + 200}px`;
-    console.log(`ScrollContainer minHeight angepasst auf: ${y + 200}px`);
+  
+  // yPixel + 200 als "Puffer"
+  if (yPixel + 200 > currentMinHeight) {
+    scrollContainer.style.minHeight = `${yPixel + 200}px`;
+    console.log(`ScrollContainer minHeight angepasst auf: ${yPixel + 200}px`);
   }
 }
 
 /******************************************************
- * 5) FUNKTION createGreenDot
+ * 5) FUNKTION createGreenDot (NEU mit xRatio, yRatio)
  *    -> Erzeugt einen grünen Punkt + zugehöriges Textfeld
  *    -> Scrollen nur, wenn shouldScroll = true
- *    -> "submissionTimestamp" ist neu hinzugefügt für Datum/Uhrzeit
+ *    -> "submissionTimestamp" zeigt Datum/Uhrzeit der Erstellung
  ******************************************************/
-function createGreenDot(text, x, y, shouldScroll = false, submissionTimestamp = null) {
-    console.log(`Creating dot at (${x}, ${y})`);
+function createGreenDot(text, xRatio, yRatio, shouldScroll = false, submissionTimestamp = null) {
+    console.log(`Creating dot with ratio (xRatio=${xRatio}, yRatio=${yRatio})`);
 
+    // Containergröße holen
+    const scrollContainer = document.getElementById('scrollContainer');
+    const containerWidth = scrollContainer.clientWidth;
+    const containerHeight = scrollContainer.clientHeight;
+    
+    // Ratios in Pixel umrechnen
+    let xPixel = xRatio * containerWidth;
+    let yPixel = yRatio * containerHeight;
+    
+    console.log(`Converted to pixels: (x=${xPixel}, y=${yPixel})`);
+
+    // Punkt-Element erstellen
     const dot = document.createElement('div');
     dot.classList.add('green-dot');
-
-    // Punkt platzieren
-    dot.style.left = `${x}px`;
-    dot.style.top  = `${y}px`;
+    dot.style.left = `${xPixel}px`;
+    dot.style.top  = `${yPixel}px`;
 
     // Text-Element erstellen
     const textElement = document.createElement('div');
     textElement.classList.add('dot-text');
+    textElement.style.left = `${xPixel + 27}px`;
+    textElement.style.top  = `${yPixel - 19}px`;
+    textElement.style.display = 'none';
 
-    // 1) Falls wir einen gespeicherten Timestamp haben -> nimm diesen
-    // 2) Sonst nimm "jetzt" als Fallback (sollte in der Praxis aber nicht passieren, 
-    //    weil wir ihn ja immer mitschicken).
+    // Datum/Uhrzeit verwenden: Entweder den übergebenen Timestamp 
+    // oder zur Not 'jetzt' als Fallback (sollte selten passieren).
     let finalDate = new Date();
     if (submissionTimestamp) {
       finalDate = new Date(submissionTimestamp);
     }
-
-    // Formatierung (de-DE) => DD.MM.YYYY bzw. HH:MM:SS
     const formattedDate = finalDate.toLocaleDateString('de-DE');
     const formattedTime = finalDate.toLocaleTimeString('de-DE');
 
-    textElement.innerHTML = `${text}<br><br><span class="timestamp">${formattedDate}<br>${formattedTime}</span>`;
-    textElement.style.left = `${x + 27}px`;
-    textElement.style.top  = `${y - 19}px`;
-    textElement.style.display = 'none';
+    textElement.innerHTML = 
+    `${text}<br><br><span class="timestamp">${formattedDate}<br>${formattedTime}</span>`;
+  
 
     // Punkt & Text ins DOM einfügen innerhalb von #textOutputArea
     textOutputArea.appendChild(dot);
     textOutputArea.appendChild(textElement);
 
-    // Anpassung der Scroll Container Höhe
-    adjustScrollContainerHeight(y);
+    // Anpassung der Scroll Container Höhe (anhand der yPixel)
+    adjustScrollContainerHeight(yPixel);
 
     // Klick-Event: Text ein-/ausblenden
     dot.addEventListener('click', () => {
@@ -145,83 +160,93 @@ function createGreenDot(text, x, y, shouldScroll = false, submissionTimestamp = 
             const rect = dot.getBoundingClientRect();
             const absoluteY = rect.top + window.pageYOffset;
             const scrollToY = absoluteY - (window.innerHeight / 2);
+            
             window.scrollTo({
                 top: scrollToY,
                 behavior: 'smooth'
             });
         });
     }
+
+    // Für dynamisches Resizing speichern wir die Ratios & DOM-Elemente 
+    // in displayedDots
+    displayedDots.push({
+      dotElem: dot,
+      textElem: textElement,
+      xRatio: xRatio,
+      yRatio: yRatio
+    });
 }
 
 /******************************************************
  * 6) TEXT ABSENDEN (ENTER) => SPEICHERN IN FIREBASE
+ *    -> Jetzt speichern wir xRatio, yRatio statt Pixel
  ******************************************************/
 textarea.addEventListener('keydown', function (event) {
   if (event.key === 'Enter' && !event.shiftKey) {
     event.preventDefault();
     const userInput = textarea.value.trim();
     if (userInput !== "") {
-      // Dynamische Berechnung der Koordinaten
       const scrollContainer = document.getElementById('scrollContainer');
       const containerWidth = scrollContainer.clientWidth;
       const containerHeight = scrollContainer.clientHeight;
       
       // Berechnung des topOffset basierend auf dem Textarea
       const topOffset = textarea.offsetTop + textarea.offsetHeight + 30; // 30px Abstand
-      
       const bottomOffset = 20; // Abstand zum unteren Rand
       const buffer = 450; // Erhöhter Puffer zum unteren Rand (z.B. 450px)
 
       const minY = topOffset;
       const maxY = containerHeight - bottomOffset - buffer;
-
-      // Sicherstellen, dass maxY nicht kleiner als minY ist
       const effectiveMaxY = maxY > minY ? maxY : minY + 100;
 
-      const textLengthFactor = Math.min(userInput.length / maxCharCount, 1); // 0..1
-      let y = minY + textLengthFactor * (effectiveMaxY - minY);
-      console.log(`Final y-Wert für den neuen Punkt: ${y}`);
+      // Textlängenfaktor (0..1)
+      const textLengthFactor = Math.min(userInput.length / maxCharCount, 1);
+      
+      // Rechne Y vorläufig in Pixel
+      let yPixel = minY + textLengthFactor * (effectiveMaxY - minY);
+      console.log(`Final y-Pixel für den neuen Punkt: ${yPixel}`);
 
-      // NEU: Beispiel für feste Obergrenze Y (falls gewünscht)
+      // NEU: Feste Obergrenze für Y (Beispiel 5000 Pixel)
       const MAX_Y = 58100;
-      y = Math.min(y, MAX_Y);
-      console.log(`(Gekappter) y-Wert: ${y}`);
+      yPixel = Math.min(yPixel, MAX_Y);
+      console.log(`(Gekappter) y-Pixel: ${yPixel}`);
 
-      // Berechnung der X-Koordinate innerhalb des Containers mit horizontalem Puffer
-      const horizontalBuffer = 50; // Puffer an den Seiten
+      // Berechnung der X-Koordinate in Pixel mit horizontalem Puffer
+      const horizontalBuffer = 50; 
       const leftMargin = horizontalBuffer; 
       const rightMargin = horizontalBuffer;
       const dotWidth = 15; // Breite der Punkte
       
       const minX = leftMargin;
       const maxX = containerWidth - rightMargin - dotWidth;
-      let x = Math.floor(minX + Math.random() * (maxX - minX));
-      console.log(`Final x-Wert für den neuen Punkt: ${x}`);
+      let xPixel = Math.floor(minX + Math.random() * (maxX - minX));
+      console.log(`Final x-Pixel für den neuen Punkt: ${xPixel}`);
 
-      // NEU: Beispiel für feste Obergrenze X (falls gewünscht)
+      // NEU: Feste Obergrenze für X (Beispiel 1200 Pixel)
       const MAX_X = 1450;
-      x = Math.min(x, MAX_X);
-      console.log(`(Gekappter) x-Wert: ${x}`);
+      xPixel = Math.min(xPixel, MAX_X);
+      console.log(`(Gekappter) x-Pixel: ${xPixel}`);
 
-      // ---- NEU: Zeitstempel (z. B. ISO-String) beim Absenden erzeugen
+      // ---- JETZT: Ratios berechnen
+      const xRatio = xPixel / containerWidth;
+      const yRatio = yPixel / containerHeight;
+      console.log(`Ratios => xRatio=${xRatio}, yRatio=${yRatio}`);
+
+      // Zeitstempel
       const now = new Date().toISOString();
 
-      // Neuen Punkt in Firebase speichern => inkl. timestamp
+      // Neuen Punkt in Firebase speichern => inkl. xRatio, yRatio
       const newRef = dotsRef.push(); // Generiert einen neuen Schlüssel ohne Daten
-
       if (newRef.key) {
-          // Füge den Schlüssel zuerst zu recentlyCreatedKeys hinzu
           recentlyCreatedKeys.push(newRef.key);
-          console.log(`New key added to recentlyCreatedKeys: ${newRef.key}`);
-
-          // Setze die Daten an der generierten Schlüsselposition
           newRef.set({
               text: userInput,
-              x: x,
-              y: y,
-              timestamp: now // Hier speichern wir die Absendezeit
+              xRatio: xRatio,
+              yRatio: yRatio,
+              timestamp: now
           }).then(() => {
-              console.log(`Saved new dot: x=${x}, y=${y}, key=${newRef.key}`);
+              console.log(`Saved new dot with ratio => xRatio=${xRatio}, yRatio=${yRatio}, key=${newRef.key}`);
           }).catch((error) => {
               console.error('Error saving new dot:', error);
           });
@@ -232,8 +257,6 @@ textarea.addEventListener('keydown', function (event) {
       // Textfeld leeren
       textarea.value = '';
       textarea.style.height = 'auto';
-      
-      // Aktualisiere den Zeichenzähler nach dem Leeren des Textareas
       charCounter.textContent = `0/${maxCharCount}`;
     }
   }
@@ -241,16 +264,20 @@ textarea.addEventListener('keydown', function (event) {
 
 /******************************************************
  * 7) BEIM LADEN: BEREITS GESPEICHERTE PUNKTE LADEN
+ *    -> Nun laden wir xRatio, yRatio statt Pixel
  ******************************************************/
-// Einmalig alle vorhandenen Punkte laden (für Historie)
 dotsRef.once('value', (snapshot) => {
   const allDots = snapshot.val();
   if (allDots) {
     Object.keys(allDots).forEach(key => {
       const dotData = allDots[key];
-      // Erzeuge Punkt ohne Scroll (weil es "alte" Punkte sind)
-      // => Übergib dotData.timestamp an createGreenDot
-      createGreenDot(dotData.text, dotData.x, dotData.y, false, dotData.timestamp);
+      createGreenDot(
+        dotData.text,
+        dotData.xRatio,
+        dotData.yRatio,
+        false,
+        dotData.timestamp
+      );
     });
   }
 });
@@ -259,7 +286,7 @@ dotsRef.once('value', (snapshot) => {
 dotsRef.on('child_added', (snapshot) => {
   // snapshot.key => eindeutige ID
   const dotKey = snapshot.key;
-  const newDotData = snapshot.val(); // { text, x, y, timestamp }
+  const newDotData = snapshot.val(); // { text, xRatio, yRatio, timestamp }
 
   console.log('child_added:', dotKey);
 
@@ -275,8 +302,14 @@ dotsRef.on('child_added', (snapshot) => {
     console.log(`Key ${dotKey} nicht in recentlyCreatedKeys.`);
   }
 
-  // createGreenDot(...) => timestamp mitgeben
-  createGreenDot(newDotData.text, newDotData.x, newDotData.y, shouldScroll, newDotData.timestamp);
+  // Punkt erstellen (nun mit Ratios)
+  createGreenDot(
+    newDotData.text,
+    newDotData.xRatio,
+    newDotData.yRatio,
+    shouldScroll,
+    newDotData.timestamp
+  );
 });
 
 /******************************************************
@@ -309,5 +342,29 @@ document.addEventListener('DOMContentLoaded', () => {
       logoText.classList.remove('hide');
       logoText.classList.add('show');
     }
+  });
+});
+
+/******************************************************
+ * 9) OPTIONAL: PUNKTE BEIM RESIZE "MITWANDERN" LASSEN
+ ******************************************************/
+window.addEventListener('resize', () => {
+  const scrollContainer = document.getElementById('scrollContainer');
+  const containerWidth = scrollContainer.clientWidth;
+  const containerHeight = scrollContainer.clientHeight;
+
+  // Für alle bereits angezeigten Punkte neu berechnen
+  displayedDots.forEach(dotObj => {
+    // Ratio -> Pixel
+    const xPixel = dotObj.xRatio * containerWidth;
+    const yPixel = dotObj.yRatio * containerHeight;
+
+    // Dot umpositionieren
+    dotObj.dotElem.style.left = `${xPixel}px`;
+    dotObj.dotElem.style.top  = `${yPixel}px`;
+
+    // Text umpositionieren
+    dotObj.textElem.style.left = `${xPixel + 27}px`;
+    dotObj.textElem.style.top  = `${yPixel - 19}px`;
   });
 });
