@@ -265,36 +265,38 @@ textarea::placeholder {
 }
 
 
-/* Ab <=1200px Breite */
 @media (max-width: 1200px) {
   .dot-text,
   .timestamp,
   #expandingTextarea,
   #logo,
+  #logo-text,
   #header-info,
   #charCounter {
-    font-size: 20px; /* oder was du willst */
+    font-size: 20px;
   }
 }
 
-/* Ab <=800px Breite */
+
 @media (max-width: 800px) {
   .dot-text,
   .timestamp,
   #expandingTextarea,
   #logo,
+  #logo-text,
   #header-info,
   #charCounter {
     font-size: 16px;
   }
 }
 
-/* Ab <=500px Breite */
+
 @media (max-width: 500px) {
   .dot-text,
   .timestamp,
   #expandingTextarea,
   #logo,
+  #logo-text,
   #header-info,
   #charCounter {
     font-size: 14px;
