@@ -64,7 +64,7 @@ body::before {
 #expandingTextarea {
   position: relative; 
   margin: 0;
-  padding: 10px 10px 30px 10px; /* Reduziertes Padding auf 10px links und rechts */
+  padding: 10px 10px 30px 10px;
   width: 100%;
   text-transform: uppercase;
   border: 2px solid #39ff14;  
@@ -265,20 +265,39 @@ textarea::placeholder {
 }
 
 
+/* Ab <=1200px Breite */
 @media (max-width: 1200px) {
-  #expandingTextarea {
-    font-size: 24px;
+  .dot-text,
+  .timestamp,
+  #expandingTextarea,
+  #logo,
+  #header-info,
+  #charCounter {
+    font-size: 20px; /* oder was du willst */
   }
 }
 
+/* Ab <=800px Breite */
 @media (max-width: 800px) {
-  #expandingTextarea {
-    font-size: 24px;
+  .dot-text,
+  .timestamp,
+  #expandingTextarea,
+  #logo,
+  #header-info,
+  #charCounter {
+    font-size: 16px;
   }
 }
 
+/* Ab <=500px Breite */
 @media (max-width: 500px) {
-  #expandingTextarea {
-    font-size: 24px;
+  .dot-text,
+  .timestamp,
+  #expandingTextarea,
+  #logo,
+  #header-info,
+  #charCounter {
+    font-size: 14px;
   }
 }
+
